@@ -1,108 +1,119 @@
 package com.ecommerce.microcommerce.web.controller;
 
+import java.net.URI;
+import java.util.List;
+
+import javax.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJacksonValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 import com.ecommerce.microcommerce.dao.ProductDao;
 import com.ecommerce.microcommerce.model.Product;
 import com.ecommerce.microcommerce.web.exceptions.ProduitIntrouvableException;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.json.MappingJacksonValue;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import javax.validation.Valid;
-import java.net.URI;
-import java.util.List;
-
-
-@Api( description="API pour es opérations CRUD sur les produits.")
-
+@Api(value = "API pour les opérations CRUD sur les produits.")
 @RestController
 public class ProductController {
 
-    @Autowired
-    private ProductDao productDao;
+	@Autowired
+	private ProductDao productDao;
 
+	// Récupérer la liste des produits
 
-    //Récupérer la liste des produits
+	@RequestMapping(value = "/Produits", method = RequestMethod.GET)
+	public MappingJacksonValue listeProduits() {
 
-    @RequestMapping(value = "/Produits", method = RequestMethod.GET)
+		Iterable<Product> produits = productDao.findAll();
 
-    public MappingJacksonValue listeProduits() {
+		SimpleBeanPropertyFilter monFiltre = SimpleBeanPropertyFilter.serializeAllExcept("marge");
+		FilterProvider listDeNosFiltres = new SimpleFilterProvider().addFilter("productFilter", monFiltre);
+		MappingJacksonValue produitsFiltres = new MappingJacksonValue(produits);
 
-        Iterable<Product> produits = productDao.findAll();
+		produitsFiltres.setFilters(listDeNosFiltres);
 
-        SimpleBeanPropertyFilter monFiltre = SimpleBeanPropertyFilter.serializeAllExcept("prixAchat");
+		return produitsFiltres;
+	}
 
-        FilterProvider listDeNosFiltres = new SimpleFilterProvider().addFilter("monFiltreDynamique", monFiltre);
+	// Récupérer un produit par son Id
+	@ApiOperation(value = "Récupère un produit grâce à son ID à condition que celui-ci soit en stock!")
+	@GetMapping(value = "/Produits/{id}")
+	public Product afficherUnProduit(@PathVariable int id) {
 
-        MappingJacksonValue produitsFiltres = new MappingJacksonValue(produits);
+		Product produit = productDao.findById(id);
 
-        produitsFiltres.setFilters(listDeNosFiltres);
+		if (produit == null)
+			throw new ProduitIntrouvableException("Le produit avec l'id " + id + " est INTROUVABLE. Écran Bleu si je pouvais.");
 
-        return produitsFiltres;
-    }
+		return produit;
+	}
 
+	// ajouter un produit
+	@PostMapping(value = "/Produits")
 
-    //Récupérer un produit par son Id
-    @ApiOperation(value = "Récupère un produit grâce à son ID à condition que celui-ci soit en stock!")
-    @GetMapping(value = "/Produits/{id}")
+	public ResponseEntity<Void> ajouterProduit(@Valid @RequestBody Product product) {
 
-    public Product afficherUnProduit(@PathVariable int id) {
+		Product productAdded = productDao.save(product);
 
-        Product produit = productDao.findById(id);
+		if (productAdded == null)
+			return ResponseEntity.noContent().build();
 
-        if(produit==null) throw new ProduitIntrouvableException("Le produit avec l'id " + id + " est INTROUVABLE. Écran Bleu si je pouvais.");
+		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(productAdded.getId()).toUri();
 
-        return produit;
-    }
+		return ResponseEntity.created(location).build();
+	}
 
+	@DeleteMapping(value = "/Produits/{id}")
+	public void supprimerProduit(@PathVariable int id) {
 
+		productDao.delete(id);
+	}
 
+	@PutMapping(value = "/Produits")
+	public void updateProduit(@RequestBody Product product) {
 
-    //ajouter un produit
-    @PostMapping(value = "/Produits")
+		productDao.save(product);
+	}
 
-    public ResponseEntity<Void> ajouterProduit(@Valid @RequestBody Product product) {
+	// Pour les tests
+	@GetMapping(value = "test/produits/{prix}")
+	public List<Product> testeDeRequetes(@PathVariable int prix) {
+		return productDao.chercherUnProduitCher(400);
+	}
 
-        Product productAdded =  productDao.save(product);
+	@GetMapping(value = "/AdminProduits")
+	public MappingJacksonValue calculerMargeProduit() {
+		Iterable<Product> produits = productDao.findAll();
 
-        if (productAdded == null)
-            return ResponseEntity.noContent().build();
+		for (Product product : produits) {
+			int marge = product.getPrix() - product.getPrixAchat();
+			product.setMarge(marge);
+		}
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(productAdded.getId())
-                .toUri();
+		SimpleBeanPropertyFilter monFiltre = SimpleBeanPropertyFilter.serializeAll();
+		FilterProvider listDeNosFiltres = new SimpleFilterProvider().addFilter("productFilter", monFiltre);
+		MappingJacksonValue produitsFiltres = new MappingJacksonValue(produits);
 
-        return ResponseEntity.created(location).build();
-    }
+		produitsFiltres.setFilters(listDeNosFiltres);
 
-    @DeleteMapping (value = "/Produits/{id}")
-    public void supprimerProduit(@PathVariable int id) {
-
-        productDao.delete(id);
-    }
-
-    @PutMapping (value = "/Produits")
-    public void updateProduit(@RequestBody Product product) {
-
-        productDao.save(product);
-    }
-
-
-    //Pour les tests
-    @GetMapping(value = "test/produits/{prix}")
-    public List<Product>  testeDeRequetes(@PathVariable int prix) {
-
-        return productDao.chercherUnProduitCher(400);
-    }
-
-
+		return produitsFiltres;
+	}
 
 }

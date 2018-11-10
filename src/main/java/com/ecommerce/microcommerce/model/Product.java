@@ -1,80 +1,89 @@
 package com.ecommerce.microcommerce.model;
 
-import com.fasterxml.jackson.annotation.JsonFilter;
-import org.hibernate.validator.constraints.Length;
-
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.Transient;
 import javax.validation.constraints.Min;
 
+import org.hibernate.validator.constraints.Length;
+
+import com.fasterxml.jackson.annotation.JsonFilter;
+
 @Entity
-//@JsonFilter("monFiltreDynamique")
+@JsonFilter("productFilter")
 public class Product {
 
-    @Id
-    @GeneratedValue
-    private int id;
+	@Id
+	@GeneratedValue
+	private int id;
 
-    @Length(min=3, max=20, message = "Nom trop long ou trop court. Et oui messages sont plus stylés que ceux de Spring")
-    private String nom;
+	@Length(min = 3, max = 20, message = "Nom trop long ou trop court. Et oui messages sont plus stylés que ceux de Spring")
+	private String nom;
 
-    @Min(value = 1)
-    private int prix;
+	@Min(value = 1)
+	private int prix;
 
-    //information que nous ne souhaitons pas exposer
-    private int prixAchat;
+	@Transient
+	private int marge;
 
-    //constructeur par défaut
-    public Product() {
-    }
+	// information que nous ne souhaitons pas exposer
+	private int prixAchat;
 
-    //constructeur pour nos tests
-    public Product(int id, String nom, int prix, int prixAchat) {
-        this.id = id;
-        this.nom = nom;
-        this.prix = prix;
-        this.prixAchat = prixAchat;
-    }
+	// constructeur par défaut
+	public Product() {
+	}
 
-    public int getId() {
-        return id;
-    }
+	// constructeur pour nos tests
+	public Product(int id, String nom, int prix, int prixAchat) {
+		this.id = id;
+		this.nom = nom;
+		this.prix = prix;
+		this.prixAchat = prixAchat;
+	}
 
-    public void setId(int id) {
-        this.id = id;
-    }
+	public int getId() {
+		return id;
+	}
 
-    public String getNom() {
-        return nom;
-    }
+	public void setId(int id) {
+		this.id = id;
+	}
 
-    public void setNom(String nom) {
-        this.nom = nom;
-    }
+	public String getNom() {
+		return nom;
+	}
 
-    public int getPrix() {
-        return prix;
-    }
+	public void setNom(String nom) {
+		this.nom = nom;
+	}
 
-    public void setPrix(int prix) {
-        this.prix = prix;
-    }
+	public int getPrix() {
+		return prix;
+	}
 
-    public int getPrixAchat() {
-        return prixAchat;
-    }
+	public void setPrix(int prix) {
+		this.prix = prix;
+	}
 
-    public void setPrixAchat(int prixAchat) {
-        this.prixAchat = prixAchat;
-    }
+	public int getPrixAchat() {
+		return prixAchat;
+	}
 
-    @Override
-    public String toString() {
-        return "Product{" +
-                "id=" + id +
-                ", nom='" + nom + '\'' +
-                ", prix=" + prix +
-                '}';
-    }
+	public void setPrixAchat(int prixAchat) {
+		this.prixAchat = prixAchat;
+	}
+
+	public int getMarge() {
+		return marge;
+	}
+
+	public void setMarge(int marge) {
+		this.marge = marge;
+	}
+
+	@Override
+	public String toString() {
+		return "Product{" + "id=" + id + ", nom='" + nom + '\'' + ", prix=" + prix + '}';
+	}
 }
