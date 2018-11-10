@@ -21,6 +21,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.ecommerce.microcommerce.dao.ProductDao;
 import com.ecommerce.microcommerce.model.Product;
+import com.ecommerce.microcommerce.web.exceptions.ProduitGratuitException;
 import com.ecommerce.microcommerce.web.exceptions.ProduitIntrouvableException;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
@@ -119,6 +120,27 @@ public class ProductController {
 	@GetMapping(value="/produitsOrderByName")
 	public MappingJacksonValue trierProduitsParOrdreAlphabetique() {
 		Iterable<Product> produits = productDao.findAllByOrderByNomAsc();
+		
+		SimpleBeanPropertyFilter monFiltre = SimpleBeanPropertyFilter.serializeAllExcept("marge");
+		FilterProvider listDeNosFiltres = new SimpleFilterProvider().addFilter("productFilter", monFiltre);
+		MappingJacksonValue produitsFiltres = new MappingJacksonValue(produits);
+
+		produitsFiltres.setFilters(listDeNosFiltres);
+
+		return produitsFiltres;
+	}
+	
+	@GetMapping(value="/produitsWithInternalError")
+	public MappingJacksonValue produitsGratuits() {
+		Iterable<Product> produits = productDao.findAll();
+		
+		((List<Product>) produits).add(new Product(4, "test", 0, 100));
+		
+		for (Product product : produits) {
+			if(product.getPrix() <= 0) {
+				throw new ProduitGratuitException("Certains produits sont gratuits");
+			}
+		}
 		
 		SimpleBeanPropertyFilter monFiltre = SimpleBeanPropertyFilter.serializeAllExcept("marge");
 		FilterProvider listDeNosFiltres = new SimpleFilterProvider().addFilter("productFilter", monFiltre);
