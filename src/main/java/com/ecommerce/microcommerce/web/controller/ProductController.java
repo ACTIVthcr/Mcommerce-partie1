@@ -115,5 +115,18 @@ public class ProductController {
 
 		return produitsFiltres;
 	}
+	
+	@GetMapping(value="/produitsOrderByName")
+	public MappingJacksonValue trierProduitsParOrdreAlphabetique() {
+		Iterable<Product> produits = productDao.findAllByOrderByNomAsc();
+		
+		SimpleBeanPropertyFilter monFiltre = SimpleBeanPropertyFilter.serializeAllExcept("marge");
+		FilterProvider listDeNosFiltres = new SimpleFilterProvider().addFilter("productFilter", monFiltre);
+		MappingJacksonValue produitsFiltres = new MappingJacksonValue(produits);
+
+		produitsFiltres.setFilters(listDeNosFiltres);
+
+		return produitsFiltres;
+	}
 
 }
